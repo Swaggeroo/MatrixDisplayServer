@@ -1,0 +1,8 @@
+{
+  "name": "MatrixDisplayServer",
+  "height": 32,
+  "width": 32,
+  "uploadDir": "uploads/",
+  "imageDir": "images/",
+  "wledUrl": "http://71362/json"
+}
