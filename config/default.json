@@ -4,5 +4,5 @@
   "width": 32,
   "uploadDir": "uploads/",
   "imageDir": "images/",
-  "wledUrl": "http://71362/json"
+  "wledUrl": "http://172.26.3.36/json"
 }

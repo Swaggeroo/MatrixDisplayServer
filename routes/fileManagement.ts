@@ -43,5 +43,17 @@ router.delete('/picture/:uuid', (req, res) => {
     res.send('The image was deleted.');
 });
 
+router.get('/random', (req, res) => {
+    //get all uuids
+    const files = fs.readdirSync(IMAGE_DIR);
+    let uuids = files.map(file => {
+        return file.split('.')[0];
+    });
+
+    const randomIndex = Math.floor(Math.random() * uuids.length);
+
+    res.send(uuids[randomIndex]);
+});
+
 
 module.exports = router;
