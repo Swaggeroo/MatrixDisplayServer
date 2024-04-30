@@ -6,18 +6,24 @@ import config from "config";
 const router = express.Router();
 const debugUpload = require('debug')('app:upload');
 
+const { isConnected } = require('../services/dbConnector');
+const { Picture } = require('../models/picture');
+
 const HEIGHT: number = config.get('height');
 const WIDTH: number = config.get('width');
 const UPLOAD_DIR: string = config.get('uploadDir');
 const DEST_DIR: string = config.get('imageDir');
 
 router.post('/upload', async (req, res) => {
+    if (!isConnected()) {
+        return res.status(500).send('Database connection is not established.');
+    }
+
     if (!req.files || Object.keys(req.files).length === 0 || !req.files['pictures']) {
         return res.status(400).send('No files were uploaded.');
     }
 
     //console.log(req.files['pictures']);
-
     let files = req.files['pictures'];
 
     if (!Array.isArray(files)) {
@@ -37,7 +43,7 @@ router.post('/upload', async (req, res) => {
             }
 
             let uuid = uuidv4();
-            file.mv(UPLOAD_DIR + uuid + ".png", function (err) {
+            file.mv(UPLOAD_DIR + uuid + "_" + file.name.split(".")[0] + ".png", function (err) {
                 if (err) {
                     debugUpload('File upload error: ' + err);
                     errors.push(err);
@@ -61,8 +67,10 @@ router.post('/upload', async (req, res) => {
         return res.status(500).send(errors);
     }
 
-    await processImages();
     res.send({ message: 'File(s) uploaded!', uuids: uuids });
+    processImages().then(() => {
+        debugUpload('Images processing started.');
+    });
 });
 
 async function processImages(): Promise<void>{
@@ -76,17 +84,31 @@ async function processImages(): Promise<void>{
 
         for (let i = 0; i < imageFiles.length; i++) {
             let file = imageFiles[i];
-            let uuid = file.split('.')[0];
+            let uuid = file.split('_')[0];
+            let name = file.split('_').slice(1).join("_").split('.')[0];
 
             try {
                 await sharp(UPLOAD_DIR + file)
                     .resize(WIDTH, HEIGHT)
-                    .toFile(DEST_DIR + file);
+                    .toFile(DEST_DIR + uuid + ".png");
+
+                //TODO save to database
+                if (!isConnected()) {
+                    debugUpload('Database connection is not established.');
+                    return;
+                }
+
+                const picture = new Picture({
+                    uuid: uuid,
+                    name: name
+                });
+
+                await picture.save();
 
                 //delete original file
                 fs.unlinkSync(UPLOAD_DIR + file);
 
-                debugUpload('File processed: ' + uuid);
+                debugUpload('File processed: ' + uuid + ' - ' + name);
             } catch (err) {
                 debugUpload('Error processing file: ' + uuid + ' - ' + err);
             }

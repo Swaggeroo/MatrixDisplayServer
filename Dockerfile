@@ -7,6 +7,8 @@ WORKDIR /app
 COPY ["package.json", "package-lock.json", "app.ts", "./"]
 COPY routes ./routes
 COPY config ./config
+COPY models ./models
+COPY services ./services
 
 RUN npm install
 

@@ -5,7 +5,11 @@ import path from 'path';
 const router = express.Router();
 const debugManagement = require('debug')('app:management');
 
+const { isConnected } = require('../services/dbConnector');
+const { Picture } = require('../models/picture');
+
 const IMAGE_DIR: string = config.get('imageDir');
+const BASE_URL: string = config.get('baseUrl');
 
 router.get('/', (req, res) => {
     //get all uuids
@@ -18,24 +22,41 @@ router.get('/', (req, res) => {
     res.send(uuids);
 });
 
-router.get('/picture/:uuid', (req, res) => {
-    const uuid = req.params.uuid;
-    const file = path.resolve(`${IMAGE_DIR}/${uuid}.png`);
+router.get('/picture/:uuid', async (req, res) => {
+    if (!isConnected()) {
+        return res.status(500).send('Database connection is not established.');
+    }
 
-    if (!fs.existsSync(file)) {
+    const uuid = req.params.uuid;
+
+    let picture = await Picture.findOne({uuid: uuid});
+
+    if (!picture) {
+        debugManagement('Picture not found: ' + uuid);
         return res.status(404).send('The image with the given UUID was not found.');
     }
 
-    debugManagement('File sent: ' + uuid);
-    res.sendFile(file);
+    debugManagement('Picture sent: ' + uuid);
+    res.send({url: BASE_URL + "pictures/" + picture.uuid + ".png", name: picture.name});
 });
 
-router.delete('/picture/:uuid', (req, res) => {
+router.delete('/picture/:uuid', async (req, res) => {
+    if (!isConnected()) {
+        return res.status(500).send('Database connection is not established.');
+    }
+
     const uuid = req.params.uuid;
     const file = path.resolve(`${IMAGE_DIR}/${uuid}.png`);
 
-    if (!fs.existsSync(file)) {
+    let picture = await Picture.findOneAndDelete({uuid: uuid});
+    if (!picture) {
+        debugManagement('Picture not found: ' + uuid);
         return res.status(404).send('The image with the given UUID was not found.');
+    }
+
+    if (!fs.existsSync(file)) {
+        debugManagement('File not found: ' + uuid);
+        return res.status(500).send('The image file was not found.');
     }
 
     fs.unlinkSync(file);
