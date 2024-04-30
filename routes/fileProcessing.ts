@@ -5,7 +5,7 @@ import fs from 'fs';
 import config from "config";
 import {isConnected} from "../services/dbConnector";
 import {Picture} from "../models/picture";
-import {Pixel} from "../utils/imageAnalysis";
+import {getPixels, Pixel} from "../utils/imageAnalysis";
 
 const router = express.Router();
 const debugUpload = require('debug')('app:upload');
@@ -116,7 +116,8 @@ async function imageProcessing(file: string, uuid: string, name: string): Promis
         const picture = new Picture({
             uuid: uuid,
             name: name,
-            animated: false
+            animated: false,
+            frames: [pixelsToFrameAll(getPixels(DEST_DIR + uuid + ".png"))]
         });
 
         await picture.save();
@@ -171,7 +172,7 @@ function pixelsToFrameAll(pixels: Pixel[]): string {
             }
         }
 
-        frameFragments.push(jsonObject);
+        frameFragments.push(JSON.stringify(jsonObject));
     }
 
     return frameFragments.join(';');
