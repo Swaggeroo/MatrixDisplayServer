@@ -20,6 +20,7 @@ router.post('/apply/:uuid', async (req, res) => {
 
     const uuid = req.params.uuid;
     let brightness: number = Number(req.query.brightness);
+    let speed: number = Number(req.query.speed);
 
     if (isNaN(brightness)) {
         brightness = BRIGHTNESS;
@@ -32,6 +33,17 @@ router.post('/apply/:uuid', async (req, res) => {
             brightness = 255;
         }
     }
+
+    if (isNaN(speed)) {
+        speed = 500;
+    }else {
+        if (speed < 250) {
+            speed = 250;
+        }
+    }
+
+    backgroundAnimationIntervalTime = speed;
+
 
     let picture = await Picture.findOne({uuid: uuid}).select('frames');
 
