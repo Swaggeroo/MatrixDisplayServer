@@ -76,6 +76,10 @@ async function processImages(): Promise<void>{
 
         let imageFiles = files.filter(file => file.endsWith('.png'));
 
+        files.filter(file => !file.endsWith('.png')).forEach(file => {
+            fs.unlinkSync(UPLOAD_DIR+file);
+        });
+
         for (let i = 0; i < imageFiles.length; i++) {
             let file = imageFiles[i];
             let uuid = file.split('_')[0];
@@ -86,7 +90,8 @@ async function processImages(): Promise<void>{
                     .resize(WIDTH, HEIGHT)
                     .toFile(DEST_DIR + uuid + ".png");
 
-                //TODO save to database
+                //TODO advanced processing issue #4
+
                 if (!isConnected()) {
                     debugUpload('Database connection is not established.');
                     return;
