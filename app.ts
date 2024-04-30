@@ -28,15 +28,15 @@ app.use(helmet());
 app.use(cors());
 
 //create uploads folder
-const uploadDir = './uploads';
-if (!fs.existsSync(uploadDir)){
-    fs.mkdirSync(uploadDir);
+const UPLOAD_DIR = './uploads';
+if (!fs.existsSync(UPLOAD_DIR)){
+    fs.mkdirSync(UPLOAD_DIR);
 }
 
 //create images folder
-const imagesDir = './images';
-if (!fs.existsSync(imagesDir)){
-    fs.mkdirSync(imagesDir);
+const IMAGES_DIR = './images';
+if (!fs.existsSync(IMAGES_DIR)){
+    fs.mkdirSync(IMAGES_DIR);
 }
 
 //routes
