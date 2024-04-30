@@ -4,6 +4,7 @@
   "width": 32,
   "uploadDir": "uploads/",
   "imageDir": "images/",
+  "tmpDir": "tmp/",
   "wledUrl": "http://172.26.3.36/json",
   "baseUrl": "http://localhost:3000/"
 }

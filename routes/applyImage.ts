@@ -8,6 +8,11 @@ const debugApplyImage = require('debug')('app:applyImage');
 const WLED_URL: string = config.get('wledUrl');
 const BRIGHTNESS: number = 20;
 
+let backgroundAnimationFrames: string[] = [];
+let backgroundAnimationIntervalTime: number = 250;
+let backgroundAnimationInterval: NodeJS.Timeout;
+let backgroundAnimationStep: number = 0;
+
 router.post('/apply/:uuid', async (req, res) => {
     if (!isConnected()) {
         return res.status(500).send('Database connection is not established.');
@@ -34,16 +39,13 @@ router.post('/apply/:uuid', async (req, res) => {
         return res.status(404).send('The image was not found.');
     }
 
-    let requests: Promise<Response>[] = [];
+    if (backgroundAnimationInterval) {
+        clearInterval(backgroundAnimationInterval);
+    }
 
     let frames = picture.frames;
     if (frames.length === 1) {
-        frames[0].split(';').forEach((frame) => {
-            frame = frame.replace("\"?\"", brightness.toString());
-            requests.push(sendToWLED(frame));
-        });
-
-        Promise.all(requests).then(() => {
+        sendToWLED(frames[0], brightness).then(() => {
             debugApplyImage('Image applied: ' + uuid);
             res.send('The image was applied.');
         }).catch(error => {
@@ -51,12 +53,38 @@ router.post('/apply/:uuid', async (req, res) => {
             res.status(500).send('Failed to apply the image.');
         });
     }else{
-        debugApplyImage('Animated images are not supported yet.');
+        debugApplyImage('Applying animation: ' + uuid);
+        backgroundAnimationFrames = frames;
+        backgroundAnimationStep = 0;
+        backgroundAnimationInterval = setInterval(async () => {
+            if(backgroundAnimationStep >= backgroundAnimationFrames.length) {
+                backgroundAnimationStep = 0;
+            }
+            try{
+                await sendToWLED(backgroundAnimationFrames[backgroundAnimationStep], brightness);
+                backgroundAnimationStep++;
+            }catch (error) {
+                debugApplyImage('Failed to apply image: ' + uuid + ' - ' + error);
+            }
+            backgroundAnimationStep++;
+        }, backgroundAnimationIntervalTime);
+        res.send('The animation is being applied.');
     }
 
  });
 
-async function sendToWLED(jsonString: string) {
+async function sendToWLED(frame: string, brightness: number) {
+    let requests: Promise<Response>[] = [];
+
+    frame.split(';').forEach((frame) => {
+        frame = frame.replace("\"?\"", brightness.toString());
+        requests.push(sendToWLEDFragment(frame));
+    });
+
+    await Promise.all(requests);
+}
+
+async function sendToWLEDFragment(jsonString: string) {
     return fetch(WLED_URL + '/json/state', {
         method: 'POST',
         body: jsonString,

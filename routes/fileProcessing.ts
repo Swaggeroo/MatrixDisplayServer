@@ -7,6 +7,8 @@ import {isConnected} from "../services/dbConnector";
 import {Picture} from "../models/picture";
 import {getPixels, Pixel} from "../utils/imageAnalysis";
 
+const gifFrames = require('gif-frames');
+
 const router = express.Router();
 const debugUpload = require('debug')('app:upload');
 
@@ -15,6 +17,7 @@ const HEIGHT: number = config.get('height');
 const WIDTH: number = config.get('width');
 const UPLOAD_DIR: string = config.get('uploadDir');
 const DEST_DIR: string = config.get('imageDir');
+const TMP_DIR: string = config.get('tmpDir');
 const ACCEPTED_MIME_TYPES: string[] = ["image/png", "image/gif"];
 const MAX_PIXELS: number = WIDTH*HEIGHT/4;
 
@@ -134,22 +137,42 @@ async function imageProcessing(file: string, uuid: string, name: string): Promis
 async function gifProcessing(file: string, uuid: string, name: string): Promise<void> {
     debugUpload('GIF processing started: ' + uuid + ' - ' + name);
 
-    //const frames = await gifFrames({ url: UPLOAD_DIR + file, frames: 'all', outputType: 'png', cumulative: true });
     await sharp(UPLOAD_DIR + file, { animated: true })
         .resize(WIDTH, HEIGHT)
         .gif()
         .toFile(DEST_DIR + uuid + ".gif");
 
+    //TODO optimise GIF first frame send all than only change
+    const frames = await gifFrames({ url: DEST_DIR + uuid + ".gif", frames: 'all', outputType: 'png', cumulative: true });
+
+    let frameStrings: string[] = [];
+
+    for (let i = 0; i < frames.length; i++) {
+        await new Promise((resolve, reject) => {
+            const writeStream = fs.createWriteStream(TMP_DIR + uuid + "_" + i + ".png");
+            frames[i].getImage().pipe(writeStream);
+            writeStream.on('finish', resolve);
+            writeStream.on('error', reject);
+        });
+
+        let pixels = getPixels(TMP_DIR + uuid + "_" + i + ".png");
+        let frame = pixelsToFrameAll(pixels);
+        frameStrings.push(frame);
+
+        fs.unlinkSync(TMP_DIR + uuid + "_" + i + ".png");
+    }
+
     const picture = new Picture({
         uuid: uuid,
         name: name,
-        animated: true
+        animated: true,
+        frames: frameStrings
     });
 
     await picture.save();
 
     //delete original file
-    await fs.unlinkSync(UPLOAD_DIR + file);
+    fs.unlinkSync(UPLOAD_DIR + file);
 
     debugUpload('GIF processing finished: ' + uuid + ' - ' + name);
 }
