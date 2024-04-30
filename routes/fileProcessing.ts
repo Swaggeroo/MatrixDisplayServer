@@ -15,6 +15,7 @@ const HEIGHT: number = config.get('height');
 const WIDTH: number = config.get('width');
 const UPLOAD_DIR: string = config.get('uploadDir');
 const DEST_DIR: string = config.get('imageDir');
+const ACCEPTED_MIME_TYPES: string[] = ["image/png", "image/gif"];
 const MAX_PIXELS: number = WIDTH*HEIGHT/4;
 
 router.post('/upload', async (req, res) => {
@@ -36,14 +37,14 @@ router.post('/upload', async (req, res) => {
 
     const movePromises = files.map(file => {
         return new Promise((resolve, reject) => {
-            if (file.mimetype !== 'image/png') {  // Check the MIME type
-                let err = 'Invalid file type. Only PNG files are allowed.';
+            if (!ACCEPTED_MIME_TYPES.includes(file.mimetype)) {
+                let err = 'File type not supported: ' + file.mimetype + ' Supported types: ' + ACCEPTED_MIME_TYPES;
                 reject(err);
                 return;
             }
 
             let uuid = uuidv4();
-            file.mv(UPLOAD_DIR + uuid + "_" + file.name.split(".")[0] + ".png", function (err) {
+            file.mv(UPLOAD_DIR + uuid + "_" + file.name.split(".")[0] + "." +file.mimetype.split("/")[1], function (err) {
                 if (err) {
                     debugUpload('File upload error: ' + err);
                     reject(err);
@@ -64,57 +65,92 @@ router.post('/upload', async (req, res) => {
 
     res.send({ message: 'File(s) uploaded!', uuids: uuids });
 
-    processImages().then(() => {
+    processFiles().then(() => {
         debugUpload('Images processing started.');
     });
 });
 
-async function processImages(): Promise<void>{
+async function processFiles(): Promise<void>{
     fs.readdir(UPLOAD_DIR, async (err, files) => {
         if (err) {
             debugUpload('Error reading directory: ' + err);
             return;
         }
 
-        let imageFiles = files.filter(file => file.endsWith('.png'));
 
-        files.filter(file => !file.endsWith('.png')).forEach(file => {
-            fs.unlinkSync(UPLOAD_DIR+file);
-        });
 
-        for (let i = 0; i < imageFiles.length; i++) {
-            let file = imageFiles[i];
+        for (let i = 0; i < files.length; i++) {
+            let file = files[i];
             let uuid = file.split('_')[0];
             let name = file.split('_').slice(1).join("_").split('.')[0];
 
-            try {
-                await sharp(UPLOAD_DIR + file)
-                    .resize(WIDTH, HEIGHT)
-                    .toFile(DEST_DIR + uuid + ".png");
+            let extension = file.split('.').pop()!.toLowerCase();
 
-                //TODO advanced processing issue #4
-
-                if (!isConnected()) {
-                    debugUpload('Database connection is not established.');
-                    return;
-                }
-
-                const picture = new Picture({
-                    uuid: uuid,
-                    name: name
-                });
-
-                await picture.save();
-
-                //delete original file
-                fs.unlinkSync(UPLOAD_DIR + file);
-
-                debugUpload('File processed: ' + uuid + ' - ' + name);
-            } catch (err) {
-                debugUpload('Error processing file: ' + uuid + ' - ' + err);
+            if (extension === 'png') {
+                await imageProcessing(file, uuid, name);
+            }else if (extension === 'gif') {
+                await gifProcessing(file, uuid, name);
+            }else {
+                debugUpload('Unsupported file extension: ' + extension);
             }
         }
     });
+}
+
+
+async function imageProcessing(file: string, uuid: string, name: string): Promise<void> {
+    try {
+        debugUpload('Image processing started: ' + uuid + ' - ' + name);
+
+        await sharp(UPLOAD_DIR + file)
+            .resize(WIDTH, HEIGHT)
+            .toFile(DEST_DIR + uuid + ".png");
+
+        //TODO advanced processing issue #4
+
+        if (!isConnected()) {
+            debugUpload('Database connection is not established.');
+            return;
+        }
+
+        const picture = new Picture({
+            uuid: uuid,
+            name: name,
+            animated: false
+        });
+
+        await picture.save();
+
+        //delete original file
+        fs.unlinkSync(UPLOAD_DIR + file);
+
+        debugUpload('Image processing finished: ' + uuid + ' - ' + name);
+    } catch (err) {
+        debugUpload('Image processing error: ' + err);
+    }
+}
+
+async function gifProcessing(file: string, uuid: string, name: string): Promise<void> {
+    debugUpload('GIF processing started: ' + uuid + ' - ' + name);
+
+    //const frames = await gifFrames({ url: UPLOAD_DIR + file, frames: 'all', outputType: 'png', cumulative: true });
+    await sharp(UPLOAD_DIR + file, { animated: true })
+        .resize(WIDTH, HEIGHT)
+        .gif()
+        .toFile(DEST_DIR + uuid + ".gif");
+
+    const picture = new Picture({
+        uuid: uuid,
+        name: name,
+        animated: true
+    });
+
+    await picture.save();
+
+    //delete original file
+    await fs.unlinkSync(UPLOAD_DIR + file);
+
+    debugUpload('GIF processing finished: ' + uuid + ' - ' + name);
 }
 
 function pixelsToFrameAll(pixels: Pixel[]): string {

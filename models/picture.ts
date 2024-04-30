@@ -10,6 +10,10 @@ const pictureSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    animated: {
+        type: Boolean,
+        required: true
+    },
     frames: {
         type: [String],
         required: true
