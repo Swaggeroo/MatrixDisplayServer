@@ -18,8 +18,7 @@ router.get('/checkIntegrity', async (req, res) => {
     debugIntegrity('Checking integrity...');
 
     //Missing DB entries
-    const files = fs.readdirSync(IMAGE_DIR);
-    let uuids = files.map(file => {
+    const uuids = fs.readdirSync(IMAGE_DIR).map(file => {
         return file.split('.')[0];
     });
 
