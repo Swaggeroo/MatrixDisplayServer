@@ -30,6 +30,10 @@ function connect(){
         process.exit(1);
     }
 
+    if (!user || !password) {
+        debugDB('Info: No user or password provided. Trying to connect without authentication.');
+    }
+
     debugDB("Trying to connect to MongoDB with "+ user + " at " + url);
     mongoose.connect(url, {
         "authSource": "admin",
