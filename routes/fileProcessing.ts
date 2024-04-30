@@ -3,11 +3,12 @@ import {v4 as uuidv4} from "uuid";
 import sharp from 'sharp';
 import fs from 'fs';
 import config from "config";
+import {isConnected} from "../services/dbConnector";
+import {Picture} from "../models/picture";
+
 const router = express.Router();
 const debugUpload = require('debug')('app:upload');
 
-const { isConnected } = require('../services/dbConnector');
-const { Picture } = require('../models/picture');
 
 const HEIGHT: number = config.get('height');
 const WIDTH: number = config.get('width');
