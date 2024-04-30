@@ -54,4 +54,4 @@ router.get('/checkIntegrity', async (req, res) => {
 });
 
 
-module.exports = router;
+export {router};

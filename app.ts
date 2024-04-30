@@ -7,16 +7,16 @@ import helmet from "helmet";
 import fileUpload from "express-fileupload";
 import fs from "fs";
 import config from "config";
-const cors = require('cors');
+import cors from "cors";
 
 //services
-const { connect } = require('./services/dbConnector');
+import {connect} from "./services/dbConnector";
 
 //routes
-const fileProcessing = require('./routes/fileProcessing');
-const fileManagement = require('./routes/fileManagement');
-const applyImage = require('./routes/applyImage');
-const integrity = require('./routes/integrity');
+import {router as fileProcessing} from './routes/fileProcessing';
+import {router as fileManagement} from './routes/fileManagement';
+import {router as applyImage} from './routes/applyImage';
+import {router as integrity} from './routes/integrity';
 
 const app = express();
 

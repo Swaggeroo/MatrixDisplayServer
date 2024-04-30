@@ -73,4 +73,4 @@ async function sendToWLED(jsonString: string) {
     });
 }
 
-module.exports = router;
+export { router };
