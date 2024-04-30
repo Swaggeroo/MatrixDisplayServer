@@ -2,11 +2,12 @@ import express from "express";
 import fs from "fs";
 import config from "config";
 import path from 'path';
+
+import {isConnected} from "../services/dbConnector";
+import {Picture} from "../models/picture";
+
 const router = express.Router();
 const debugManagement = require('debug')('app:management');
-
-const { isConnected } = require('../services/dbConnector');
-const { Picture } = require('../models/picture');
 
 const IMAGE_DIR: string = config.get('imageDir');
 const BASE_URL: string = config.get('baseUrl');

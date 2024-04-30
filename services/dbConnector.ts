@@ -44,5 +44,4 @@ function isConnected(){
     return connected;
 }
 
-exports.connect = connect;
-exports.isConnected = isConnected;
+export { connect, isConnected}
