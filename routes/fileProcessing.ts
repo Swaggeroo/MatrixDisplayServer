@@ -24,21 +24,18 @@ router.post('/upload', async (req, res) => {
         return res.status(400).send('No files were uploaded.');
     }
 
-    //console.log(req.files['pictures']);
     let files = req.files['pictures'];
 
     if (!Array.isArray(files)) {
         files = [files];
     }
 
-    let errors: String[] = [];
     let uuids: String[] = [];
 
     const movePromises = files.map(file => {
         return new Promise((resolve, reject) => {
             if (file.mimetype !== 'image/png') {  // Check the MIME type
                 let err = 'Invalid file type. Only PNG files are allowed.';
-                errors.push(err);
                 reject(err);
                 return;
             }
@@ -47,7 +44,6 @@ router.post('/upload', async (req, res) => {
             file.mv(UPLOAD_DIR + uuid + "_" + file.name.split(".")[0] + ".png", function (err) {
                 if (err) {
                     debugUpload('File upload error: ' + err);
-                    errors.push(err);
                     reject(err);
                 } else {
                     debugUpload('File uploaded: ' + uuid);
@@ -61,14 +57,11 @@ router.post('/upload', async (req, res) => {
     try {
         await Promise.all(movePromises);
     } catch (err) {
-        return res.status(500).send(errors);
-    }
-
-    if (errors.length > 0) {
-        return res.status(500).send(errors);
+        return res.status(500).send(err);
     }
 
     res.send({ message: 'File(s) uploaded!', uuids: uuids });
+
     processImages().then(() => {
         debugUpload('Images processing started.');
     });
