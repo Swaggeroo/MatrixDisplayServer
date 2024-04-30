@@ -37,8 +37,6 @@ router.post('/apply/:uuid', (req, res) => {
     // Read the image file into a Buffer
     const imageData = fs.readFileSync(file);
 
-    //TODO
-
     // Parse the image buffer
     const png = PNG.sync.read(imageData);
 
