@@ -7,16 +7,16 @@ import helmet from "helmet";
 import fileUpload from "express-fileupload";
 import fs from "fs";
 import config from "config";
-const cors = require('cors');
+import cors from "cors";
 
 //services
-const { connect } = require('./services/dbConnector');
+import {connect as connectDB} from "./services/dbConnector";
 
 //routes
-const fileProcessing = require('./routes/fileProcessing');
-const fileManagement = require('./routes/fileManagement');
-const applyImage = require('./routes/applyImage');
-const integrity = require('./routes/integrity');
+import {router as fileProcessing} from './routes/fileProcessing';
+import {router as fileManagement} from './routes/fileManagement';
+import {router as applyImage} from './routes/applyImage';
+import {router as integrity} from './routes/integrity';
 
 const app = express();
 
@@ -28,15 +28,15 @@ app.use(helmet());
 app.use(cors());
 
 //create uploads folder
-const uploadDir = './uploads';
-if (!fs.existsSync(uploadDir)){
-    fs.mkdirSync(uploadDir);
+const UPLOAD_DIR = './uploads';
+if (!fs.existsSync(UPLOAD_DIR)){
+    fs.mkdirSync(UPLOAD_DIR);
 }
 
 //create images folder
-const imagesDir = './images';
-if (!fs.existsSync(imagesDir)){
-    fs.mkdirSync(imagesDir);
+const IMAGES_DIR = './images';
+if (!fs.existsSync(IMAGES_DIR)){
+    fs.mkdirSync(IMAGES_DIR);
 }
 
 //routes
@@ -50,7 +50,7 @@ app.use('/pictures', express.static('images'));
 //read config
 debugStartup(config.get('name'));
 
-connect();
+connectDB();
 
 //enable logging for not covered routes
 if(app.get('env') === 'development'){

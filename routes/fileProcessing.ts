@@ -115,4 +115,4 @@ async function processImages(): Promise<void>{
     });
 }
 
-module.exports = router;
+export { router };
