@@ -10,7 +10,7 @@ import config from "config";
 import cors from "cors";
 
 //services
-import {connect} from "./services/dbConnector";
+import {connect as connectDB} from "./services/dbConnector";
 
 //routes
 import {router as fileProcessing} from './routes/fileProcessing';
@@ -50,7 +50,7 @@ app.use('/pictures', express.static('images'));
 //read config
 debugStartup(config.get('name'));
 
-connect();
+connectDB();
 
 //enable logging for not covered routes
 if(app.get('env') === 'development'){
