@@ -6,12 +6,19 @@ import config from "config";
 const router = express.Router();
 const debugUpload = require('debug')('app:upload');
 
+const { isConnected } = require('../services/dbConnector');
+const { Picture } = require('../models/picture');
+
 const HEIGHT: number = config.get('height');
 const WIDTH: number = config.get('width');
 const UPLOAD_DIR: string = config.get('uploadDir');
 const DEST_DIR: string = config.get('imageDir');
 
 router.post('/upload', async (req, res) => {
+    if (!isConnected()) {
+        return res.status(500).send('Database connection is not established.');
+    }
+
     if (!req.files || Object.keys(req.files).length === 0 || !req.files['pictures']) {
         return res.status(400).send('No files were uploaded.');
     }
@@ -86,6 +93,17 @@ async function processImages(): Promise<void>{
                     .toFile(DEST_DIR + uuid + ".png");
 
                 //TODO save to database
+                if (!isConnected()) {
+                    debugUpload('Database connection is not established.');
+                    return;
+                }
+
+                const picture = new Picture({
+                    uuid: uuid,
+                    name: name
+                });
+
+                await picture.save();
 
                 //delete original file
                 fs.unlinkSync(UPLOAD_DIR + file);
