@@ -16,6 +16,7 @@ const { connect } = require('./services/dbConnector');
 const fileProcessing = require('./routes/fileProcessing');
 const fileManagement = require('./routes/fileManagement');
 const applyImage = require('./routes/applyImage');
+const integrity = require('./routes/integrity');
 
 const app = express();
 
@@ -42,6 +43,7 @@ if (!fs.existsSync(imagesDir)){
 app.use('/api', fileProcessing);
 app.use('/api', fileManagement);
 app.use('/api', applyImage);
+app.use('/api', integrity);
 
 app.use('/pictures', express.static('images'));
 
