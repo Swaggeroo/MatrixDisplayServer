@@ -5,6 +5,7 @@ import fs from 'fs';
 import config from "config";
 import {isConnected} from "../services/dbConnector";
 import {Picture} from "../models/picture";
+import {Pixel} from "../utils/imageAnalysis";
 
 const router = express.Router();
 const debugUpload = require('debug')('app:upload');
@@ -14,6 +15,7 @@ const HEIGHT: number = config.get('height');
 const WIDTH: number = config.get('width');
 const UPLOAD_DIR: string = config.get('uploadDir');
 const DEST_DIR: string = config.get('imageDir');
+const MAX_PIXELS: number = WIDTH*HEIGHT/4;
 
 router.post('/upload', async (req, res) => {
     if (!isConnected()) {
@@ -113,6 +115,30 @@ async function processImages(): Promise<void>{
             }
         }
     });
+}
+
+function pixelsToFrameAll(pixels: Pixel[]): string {
+    const frameFragmentCount: number = pixels.length / MAX_PIXELS;
+    let frameFragments: string[] = [];
+
+    for (let i = 0; i < frameFragmentCount; i++) {
+        let jsonString = '{"on":true,"bri":"?","seg":{"i":[]}}';
+        let jsonObject = JSON.parse(jsonString);
+
+        jsonObject.seg.i.push(MAX_PIXELS*i);
+
+        for (let j = MAX_PIXELS*i; j < MAX_PIXELS*(i+1); j++) {
+            if (pixels[j].alpha === 0) {
+                jsonObject.seg.i.push("000000");
+            }else {
+                jsonObject.seg.i.push(pixels[j].red.toString(16).padStart(2, '0') + pixels[j].green.toString(16).padStart(2, '0') + pixels[j].blue.toString(16).padStart(2, '0'));
+            }
+        }
+
+        frameFragments.push(jsonObject);
+    }
+
+    return frameFragments.join(';');
 }
 
 export { router };

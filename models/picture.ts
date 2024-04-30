@@ -9,6 +9,10 @@ const pictureSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true
+    },
+    frames: {
+        type: [String],
+        required: true
     }
 });
 

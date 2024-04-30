@@ -17,7 +17,8 @@ function getPixels(filePath: string): Pixel[] {
                 red: png.data[idx],
                 green: png.data[idx + 1],
                 blue: png.data[idx + 2],
-                alpha: png.data[idx + 3]
+                alpha: png.data[idx + 3],
+                id: y * png.width + x
             };
             pixels.push(pixel);
         }
@@ -30,7 +31,8 @@ export type Pixel = {
     red: number,
     green: number,
     blue: number,
-    alpha: number
+    alpha: number,
+    id: number
 }
 
 export { getPixels };
