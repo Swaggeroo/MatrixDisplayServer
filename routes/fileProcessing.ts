@@ -7,7 +7,7 @@ import {isConnected} from "../services/dbConnector";
 import {Picture} from "../models/picture";
 import {getPixels, Pixel} from "../utils/imageAnalysis";
 
-const gifFrames = require('gif-frames');
+const extractFrames = require('gif-extract-frames');
 
 const router = express.Router();
 const debugUpload = require('debug')('app:upload');
@@ -142,19 +142,14 @@ async function gifProcessing(file: string, uuid: string, name: string): Promise<
         .gif()
         .toFile(DEST_DIR + uuid + ".gif");
 
-    //TODO optimise GIF first frame send all than only change
-    const frames = await gifFrames({ url: DEST_DIR + uuid + ".gif", frames: 'all', outputType: 'png', cumulative: true });
+    const results = await extractFrames({
+        input: DEST_DIR + uuid + ".gif",
+        output: TMP_DIR + uuid + "_%d.png"
+    })
 
     let frameStrings: string[] = [];
 
-    for (let i = 0; i < frames.length; i++) {
-        await new Promise((resolve, reject) => {
-            const writeStream = fs.createWriteStream(TMP_DIR + uuid + "_" + i + ".png");
-            frames[i].getImage().pipe(writeStream);
-            writeStream.on('finish', resolve);
-            writeStream.on('error', reject);
-        });
-
+    for (let i = 0; i < results.length; i++) {
         let pixels = getPixels(TMP_DIR + uuid + "_" + i + ".png");
         let frame = pixelsToFrameAll(pixels);
         frameStrings.push(frame);

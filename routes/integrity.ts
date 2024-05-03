@@ -5,8 +5,8 @@ import path from 'path';
 const router = express.Router();
 const debugIntegrity = require('debug')('app:integrity');
 
-const { isConnected } = require('../services/dbConnector');
-const { Picture } = require('../models/picture');
+import {Picture} from '../models/picture';
+import {isConnected} from "../services/dbConnector";
 
 const IMAGE_DIR: string = config.get('imageDir');
 
@@ -17,40 +17,41 @@ router.get('/checkIntegrity', async (req, res) => {
 
     debugIntegrity('Checking integrity...');
 
+    const files = fs.readdirSync(IMAGE_DIR);
     //Missing DB entries
-    const uuids = fs.readdirSync(IMAGE_DIR).map(file => {
+    const uuids = files.map(file => {
         return file.split('.')[0];
     });
 
     let pictures = await Picture.find({uuid: {$in: uuids}});
 
-    let missingDBEntries = uuids.filter(uuid => {
+    let missingDatabaseEntriesUUID = uuids.filter(uuid => {
         return !pictures.some((picture: any) => {
             return picture.uuid === uuid;
         });
     });
 
-    for (let i = 0; i < missingDBEntries.length; i++) {
-        let file = path.resolve(`${IMAGE_DIR}/${missingDBEntries[i]}.png`);
-        fs.unlinkSync(file);
-        debugIntegrity('Deleted file: ' + missingDBEntries[i]);
+    for (let i = 0; i < missingDatabaseEntriesUUID.length; i++) {
+        try{
+            let uuidPath = files.find((file)=>{
+                return file.startsWith(missingDatabaseEntriesUUID[i]);
+            });
+
+            let file = path.resolve(`${IMAGE_DIR}${uuidPath!}`);
+            fs.unlinkSync(file);
+            debugIntegrity('Deleted file: ' + uuidPath);
+        }catch (err){
+            debugIntegrity('Error deleting file: ' + missingDatabaseEntriesUUID[i] + ' ' + err);
+        }
     }
 
     //Missing files
-    pictures = await Picture.find();
-    let missingFiles = pictures.filter((picture: any) => {
-        return !fs.existsSync(path.resolve(`${IMAGE_DIR}/${picture.uuid}.png`));
-    });
-
-    for (let i = 0; i < missingFiles.length; i++) {
-        await Picture.findOneAndDelete({uuid: missingFiles[i].uuid});
-        debugIntegrity('Deleted DB entry: ' + missingFiles[i].uuid);
-    }
+    await Picture.deleteMany({uuid: {$nin: uuids}});
 
     debugIntegrity('Integrity check finished.');
-    debugIntegrity('Cleaned: Files: ' + missingDBEntries.length + ' DB entries: ' + missingFiles.length);
+    debugIntegrity('Cleaned: Files');
 
-    res.send({"status":"Cleaned", missingDBEntries, missingFiles});
+    res.send({"status":"Cleaned"});
 });
 
 
