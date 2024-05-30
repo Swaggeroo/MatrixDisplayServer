@@ -5,6 +5,6 @@
   "uploadDir": "uploads/",
   "imageDir": "images/",
   "tmpDir": "tmp/",
-  "wledUrl": "http://172.26.3.36/json",
+  "matrixUrl": "http://172.26.3.36",
   "baseUrl": "http://localhost:3000/"
 }

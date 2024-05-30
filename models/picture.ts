@@ -14,7 +14,12 @@ const pictureSchema = new mongoose.Schema({
         type: Boolean,
         required: true
     },
-    frames: {
+    frameCount: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    data: {
         type: [String],
         required: true
     }

@@ -19,7 +19,6 @@ const UPLOAD_DIR: string = config.get('uploadDir');
 const DEST_DIR: string = config.get('imageDir');
 const TMP_DIR: string = config.get('tmpDir');
 const ACCEPTED_MIME_TYPES: string[] = ["image/png", "image/gif"];
-const MAX_PIXELS: number = WIDTH*HEIGHT/4;
 
 router.post('/upload', async (req, res) => {
     if (!isConnected()) {
@@ -80,8 +79,6 @@ async function processFiles(): Promise<void>{
             return;
         }
 
-
-
         for (let i = 0; i < files.length; i++) {
             let file = files[i];
             let uuid = file.split('_')[0];
@@ -109,8 +106,6 @@ async function imageProcessing(file: string, uuid: string, name: string): Promis
             .resize(WIDTH, HEIGHT)
             .toFile(DEST_DIR + uuid + ".png");
 
-        //TODO advanced processing issue #4
-
         if (!isConnected()) {
             debugUpload('Database connection is not established.');
             return;
@@ -120,7 +115,7 @@ async function imageProcessing(file: string, uuid: string, name: string): Promis
             uuid: uuid,
             name: name,
             animated: false,
-            frames: [pixelsToFrameAll(getPixels(DEST_DIR + uuid + ".png"))]
+            data: [pixelsToPicture(getPixels(DEST_DIR + uuid + ".png"))]
         });
 
         await picture.save();
@@ -147,29 +142,19 @@ async function gifProcessing(file: string, uuid: string, name: string): Promise<
         output: TMP_DIR + uuid + "_%d.png"
     })
 
-    let frameStrings: string[] = [];
+    let pixels: Pixel[][] = [];
 
-    let pixelsPre: Pixel[] = [];
-    let pixels = getPixels(TMP_DIR + uuid + "_" + 0 + ".png");
-    let frame = pixelsToFrameAll(pixels);
-    frameStrings.push(frame);
-
-    for (let i = 1; i < results.shape[0]; i++) {
-        pixelsPre = getPixels(TMP_DIR + uuid + "_" + (i-1) + ".png");
-        pixels = getPixels(TMP_DIR + uuid + "_" + i + ".png");
-        frame = getBestFrameMethode(pixelsPre, pixels);
-        frameStrings.push(frame);
-
-        fs.unlinkSync(TMP_DIR + uuid + "_" + (i-1) + ".png");
+    for (let i = 0; i < results.shape[0]; i++) {
+        pixels[i] = getPixels(TMP_DIR + uuid + "_" + i + ".png");
+        fs.unlinkSync(TMP_DIR + uuid + "_" + (i) + ".png");
     }
-
-    fs.unlinkSync(TMP_DIR + uuid + "_" + (results.shape[0]-1) + ".png");
 
     const picture = new Picture({
         uuid: uuid,
         name: name,
         animated: true,
-        frames: frameStrings
+        frameCount: results.shape[0],
+        data: pixelsToAnimation(pixels, results.shape[0]),
     });
 
     await picture.save();
@@ -180,31 +165,57 @@ async function gifProcessing(file: string, uuid: string, name: string): Promise<
     debugUpload('GIF processing finished: ' + uuid + ' - ' + name);
 }
 
-function pixelsToFrameAll(pixels: Pixel[]): string {
-    const frameFragmentCount: number = pixels.length / MAX_PIXELS;
-    let frameFragments: string[] = [];
+function pixelsToPicture(pixels: Pixel[]): string {
+    let jsonString = '{"picture":[]}';
+    let jsonObject = JSON.parse(jsonString);
 
-    for (let i = 0; i < frameFragmentCount; i++) {
-        let jsonString = '{"on":true,"bri":"?","seg":{"i":[]}}';
-        let jsonObject = JSON.parse(jsonString);
-
-        jsonObject.seg.i.push(MAX_PIXELS*i);
-
-        for (let j = MAX_PIXELS*i; j < MAX_PIXELS*(i+1); j++) {
-            if (pixels[j].alpha === 0) {
-                jsonObject.seg.i.push("000000");
-            }else {
-                jsonObject.seg.i.push(pixels[j].red.toString(16).padStart(2, '0') + pixels[j].green.toString(16).padStart(2, '0') + pixels[j].blue.toString(16).padStart(2, '0'));
-            }
+    for (let i = 0; i < pixels.length; i++) {
+        if (pixels[i].alpha === 0) {
+            jsonObject.picture.push([0, 0, 0]);
+        }else {
+            jsonObject.picture.push([pixels[i].red, pixels[i].green, pixels[i].blue]);
         }
-
-        frameFragments.push(JSON.stringify(jsonObject));
     }
 
-    return frameFragments.join(';');
+    return JSON.stringify(jsonObject);
 }
 
-function pixelsToFrameDiff(pixelsPre: Pixel[], pixels: Pixel[]): string {
+function pixelsToAnimation(pixels: Pixel[][], frameCount: number): string[] {
+    let data: string[] = [];
+
+    for (let i = 0; i <= frameCount; i++) {
+        let jsonString = '{"frameCount":' + frameCount + ',"frameFragment":' + i + ',"frameDelay":-1,"frame":[]}';
+        let jsonObject = JSON.parse(jsonString);
+
+        if (i === 0){
+            jsonObject.frame = getAnimationFrame(pixels[0]);
+        }else if (i === frameCount) {
+            jsonObject.frame = pixelsToFrameDiff(pixels[frameCount-1], pixels[0]);
+        }else {
+            jsonObject.frame = (pixelsToFrameDiff(pixels[i-1], pixels[i]));
+        }
+
+        data.push(JSON.stringify(jsonObject));
+    }
+
+    return data;
+}
+
+function getAnimationFrame(pixels: Pixel[]): number[][] {
+    let frame: number[][] = [];
+
+    for (let i = 0; i < pixels.length; i++) {
+        if (pixels[i].alpha === 0) {
+            frame.push([pixels[i].id, 0, 0, 0]);
+        }else {
+            frame.push([pixels[i].id, pixels[i].red, pixels[i].green, pixels[i].blue]);
+        }
+    }
+
+    return frame;
+}
+
+function pixelsToFrameDiff(pixelsPre: Pixel[], pixels: Pixel[]): number[][] {
     let diffPixels: Pixel[] = [];
 
     for (let i = 0; i < pixels.length; i++) {
@@ -213,36 +224,7 @@ function pixelsToFrameDiff(pixelsPre: Pixel[], pixels: Pixel[]): string {
         }
     }
 
-    const frameFragmentCount: number = diffPixels.length / MAX_PIXELS;
-    let frameFragments: string[] = [];
-
-    for (let i = 0; i < frameFragmentCount; i++) {
-        let jsonString = '{"on":true,"bri":"?","seg":{"i":[]}}';
-        let jsonObject = JSON.parse(jsonString);
-
-        //TODO ranges instead of single pixels
-
-        for (let j = MAX_PIXELS*i; j < MAX_PIXELS*(i+1) && j < diffPixels.length; j++) {
-            jsonObject.seg.i.push(diffPixels[j].id);
-
-            if (diffPixels[j].alpha === 0) {
-                jsonObject.seg.i.push("000000");
-            }else {
-                jsonObject.seg.i.push(diffPixels[j].red.toString(16).padStart(2, '0') + diffPixels[j].green.toString(16).padStart(2, '0') + diffPixels[j].blue.toString(16).padStart(2, '0'));
-            }
-        }
-
-        frameFragments.push(JSON.stringify(jsonObject));
-    }
-
-    return frameFragments.join(';');
-}
-
-function getBestFrameMethode(pixelsPre: Pixel[], pixels: Pixel[]): string {
-    const diffFrames = pixelsToFrameDiff(pixelsPre, pixels);
-    const allFrames = pixelsToFrameAll(pixels);
-
-    return diffFrames.length < allFrames.length ? diffFrames : allFrames;
+    return getAnimationFrame(diffPixels);
 }
 
 export { router };

@@ -5,8 +5,14 @@ import {Picture} from "../models/picture";
 const router = express.Router();
 const debugApplyImage = require('debug')('app:applyImage');
 
-const WLED_URL: string = config.get('wledUrl');
+const MATRIX_URL: string = config.get('matrixUrl');
+
 const BRIGHTNESS: number = 20;
+const MIN_BRIGHTNESS: number = 1;
+const MAX_BRIGHTNESS: number = 255;
+const SPEED: number = 500;
+const MIN_SPEED: number = 0;
+const MAX_SPEED: number = 60000;
 
 let backgroundAnimationFrames: string[] = [];
 let backgroundAnimationIntervalTime: number = 250;
@@ -25,81 +31,74 @@ router.post('/apply/:uuid', async (req, res) => {
     if (isNaN(brightness)) {
         brightness = BRIGHTNESS;
     }else {
-        if (brightness < 15) {
-            brightness = 15;
-        }
-
-        if (brightness > 255) {
-            brightness = 255;
+        if (brightness < MIN_BRIGHTNESS) {
+            brightness = MIN_BRIGHTNESS;
+        }else if (brightness > MAX_BRIGHTNESS) {
+            brightness = MAX_BRIGHTNESS;
         }
     }
 
     if (isNaN(speed)) {
         speed = 500;
     }else {
-        if (speed < 250) {
-            speed = 250;
+        if (speed < MIN_SPEED) {
+            speed = MIN_SPEED;
+        }else if (speed > MAX_SPEED) {
+            speed = MAX_SPEED;
         }
     }
 
     backgroundAnimationIntervalTime = speed;
 
 
-    let picture = await Picture.findOne({uuid: uuid}).select('frames');
+    let picture = await Picture.findOne({uuid: uuid}).select('data animated');
 
     if (!picture) {
         return res.status(404).send('The image was not found.');
     }
 
-    if (backgroundAnimationInterval) {
-        clearInterval(backgroundAnimationInterval);
+    await sendBrightnessToMatrix(brightness);
+
+    try{
+        if (picture.animated){
+            await sendAnimationToMatrix(picture.data, speed);
+        }else{
+            await sendPictureToMatrix(picture.data[0]);
+        }
+    } catch (err){
+        debugApplyImage('Error sending data to matrix: ' + err);
+        return res.status(500).send('Error sending data to matrix.');
     }
 
-    let frames = picture.frames;
-    if (frames.length === 1) {
-        sendToWLED(frames[0], brightness).then(() => {
-            debugApplyImage('Image applied: ' + uuid);
-            res.send('The image was applied.');
-        }).catch(error => {
-            debugApplyImage('Failed to apply image: ' + uuid + ' - ' + error);
-            res.status(500).send('Failed to apply the image.');
-        });
-    }else{
-        debugApplyImage('Applying animation: ' + uuid);
-        backgroundAnimationFrames = frames;
-        backgroundAnimationStep = 0;
-        backgroundAnimationInterval = setInterval(async () => {
-            if(backgroundAnimationStep >= backgroundAnimationFrames.length) {
-                backgroundAnimationStep = 0;
-            }
-            try{
-                await sendToWLED(backgroundAnimationFrames[backgroundAnimationStep], brightness);
-                backgroundAnimationStep++;
-            }catch (error) {
-                debugApplyImage('Failed to apply image: ' + uuid + ' - ' + error);
-            }
-            backgroundAnimationStep++;
-        }, backgroundAnimationIntervalTime);
-        res.send('The animation is being applied.');
-    }
+    debugApplyImage('The image was applied.');
+    res.send('The image was applied.');
 
  });
 
-async function sendToWLED(frame: string, brightness: number) {
-    let requests: Promise<Response>[] = [];
-
-    frame.split(';').forEach((frame) => {
-        frame = frame.replace("\"?\"", brightness.toString());
-        requests.push(sendToWLEDFragment(frame));
+async function sendPictureToMatrix(body: string){
+    await fetch(MATRIX_URL + '/setPicture', {
+        method: 'POST',
+        body: body,
+        headers: {'Content-Type': 'application/json'}
     });
-
-    await Promise.all(requests);
 }
 
-async function sendToWLEDFragment(jsonString: string) {
-    return fetch(WLED_URL + '/json/state', {
+async function sendAnimationToMatrix(body: string[], speed: number){
+    for (let i = 0; i < body.length; i++){
+        body[i] = body[i].replace('-1', speed.toString());
+        await fetch(MATRIX_URL + '/setAnimationFragment', {
+            method: 'POST',
+            body: body[i],
+            headers: {'Content-Type': 'application/json'}
+        });
+    }
+}
+
+async function sendBrightnessToMatrix(brightness: number){
+    let body = "{\"brightness\":" + brightness + "}";
+    await fetch(MATRIX_URL + '/setBrightness', {
         method: 'POST',
-        body: jsonString,
+        body: body,
         headers: {'Content-Type': 'application/json'}
     });
 }
