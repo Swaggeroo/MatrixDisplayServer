@@ -5,7 +5,7 @@ import {Picture} from "../models/picture";
 const router = express.Router();
 const debugApplyImage = require('debug')('app:applyImage');
 
-const MATRIX_URL: string = config.get('matrixUrl');
+const MATRIX_URL: string = process.env.MatrixURL ?? config.get('matrixUrl');
 
 const BRIGHTNESS: number = 20;
 const MIN_BRIGHTNESS: number = 1;
