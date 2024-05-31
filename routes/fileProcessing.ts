@@ -29,10 +29,30 @@ router.post('/upload', async (req, res) => {
         return res.status(400).send('No files were uploaded.');
     }
 
+    if (!req.body.title) {
+        return res.status(400).send('No title was provided.');
+    }
+
     let files = req.files['pictures'];
+    let title = req.body.title;
+
+    if (title.length < 3 || title.length > 30) {
+        return res.status(400).send('Title must be between 3 and 30 characters long.');
+    }
+
+    const alphanumericRegex = /^[a-z0-9 ]+$/i;
+    if (!alphanumericRegex.test(title)) {
+        return res.status(400).send('Title must be alphanumeric and can include spaces.');
+    }
 
     if (!Array.isArray(files)) {
         files = [files];
+    }
+
+    //Sadly its to complex to handle multiple files plus naming
+    //Not changing away from array to avoid breaking changes
+    if (files.length > 1){
+        return res.status(400).send('Only one file can be uploaded at a time.');
     }
 
     let uuids: String[] = [];
@@ -46,7 +66,7 @@ router.post('/upload', async (req, res) => {
             }
 
             let uuid = uuidv4();
-            file.mv(UPLOAD_DIR + uuid + "_" + file.name.split(".")[0] + "." +file.mimetype.split("/")[1], function (err) {
+            file.mv(UPLOAD_DIR + uuid + "_" + title + "." +file.mimetype.split("/")[1], function (err) {
                 if (err) {
                     debugUpload('File upload error: ' + err);
                     reject(err);

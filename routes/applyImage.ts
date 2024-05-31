@@ -14,15 +14,17 @@ const SPEED: number = 500;
 const MIN_SPEED: number = 0;
 const MAX_SPEED: number = 60000;
 
-let backgroundAnimationFrames: string[] = [];
-let backgroundAnimationIntervalTime: number = 250;
-let backgroundAnimationInterval: NodeJS.Timeout;
-let backgroundAnimationStep: number = 0;
+let applyingImage: boolean = false;
 
 router.post('/apply/:uuid', async (req, res) => {
     if (!isConnected()) {
         return res.status(500).send('Database connection is not established.');
     }
+
+    if (applyingImage){
+        return res.status(400).send('Another image is currently being applied.');
+    }
+    applyingImage = true;
 
     const uuid = req.params.uuid;
     let brightness: number = Number(req.query.brightness);
@@ -39,7 +41,7 @@ router.post('/apply/:uuid', async (req, res) => {
     }
 
     if (isNaN(speed)) {
-        speed = 500;
+        speed = SPEED;
     }else {
         if (speed < MIN_SPEED) {
             speed = MIN_SPEED;
@@ -48,12 +50,11 @@ router.post('/apply/:uuid', async (req, res) => {
         }
     }
 
-    backgroundAnimationIntervalTime = speed;
-
 
     let picture = await Picture.findOne({uuid: uuid}).select('data animated');
 
     if (!picture) {
+        applyingImage = false;
         return res.status(404).send('The image was not found.');
     }
 
@@ -61,37 +62,46 @@ router.post('/apply/:uuid', async (req, res) => {
 
     try{
         if (picture.animated){
-            await sendAnimationToMatrix(picture.data, speed);
+            await sendAnimationToMatrix(picture.data, speed, res);
         }else{
-            await sendPictureToMatrix(picture.data[0]);
+            await sendPictureToMatrix(picture.data[0], res);
         }
     } catch (err){
         debugApplyImage('Error sending data to matrix: ' + err);
+        applyingImage = false;
         return res.status(500).send('Error sending data to matrix.');
     }
 
+    applyingImage = false;
     debugApplyImage('The image was applied.');
-    res.send('The image was applied.');
-
  });
 
-async function sendPictureToMatrix(body: string){
+async function sendPictureToMatrix(body: string, res: any){
+    res.write('0 of 1\n');
+    res.write('0 of 1\n');
+
     await fetch(MATRIX_URL + '/setPicture', {
         method: 'POST',
         body: body,
         headers: {'Content-Type': 'application/json'}
     });
+
+    res.write('1 of 1');
+    res.end();
 }
 
-async function sendAnimationToMatrix(body: string[], speed: number){
+async function sendAnimationToMatrix(body: string[], speed: number, res: any){
     for (let i = 0; i < body.length; i++){
         body[i] = body[i].replace('-1', speed.toString());
+        res.write(i + ' of ' + body.length + '\n');
         await fetch(MATRIX_URL + '/setAnimationFragment', {
             method: 'POST',
             body: body[i],
             headers: {'Content-Type': 'application/json'}
         });
     }
+    res.write(body.length+' of '+body.length);
+    res.end();
 }
 
 async function sendBrightnessToMatrix(brightness: number){

@@ -24,7 +24,7 @@ const app = express();
 app.use(fileUpload())
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
-app.use(helmet());
+app.use(helmet({crossOriginResourcePolicy: false,}));
 app.use(cors());
 
 //create uploads folder

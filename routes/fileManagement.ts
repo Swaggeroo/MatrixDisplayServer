@@ -38,7 +38,7 @@ router.get('/picture/:uuid', async (req, res) => {
     }
 
     debugManagement('Picture sent: ' + uuid);
-    res.send({url: BASE_URL + "pictures/" + picture.uuid + ".png", name: picture.name});
+    res.send({url: BASE_URL + "pictures/" + picture.uuid + (picture.animated ? ".gif" : ".png"), name: picture.name});
 });
 
 router.delete('/picture/:uuid', async (req, res) => {
@@ -47,13 +47,14 @@ router.delete('/picture/:uuid', async (req, res) => {
     }
 
     const uuid = req.params.uuid;
-    const file = path.resolve(`${IMAGE_DIR}/${uuid}.png`);
 
     let picture = await Picture.findOneAndDelete({uuid: uuid});
     if (!picture) {
         debugManagement('Picture not found: ' + uuid);
         return res.status(404).send('The image with the given UUID was not found.');
     }
+
+    const file = path.resolve(`${IMAGE_DIR}/${uuid}.${picture.animated ? 'gif' : 'png'}`);
 
     if (!fs.existsSync(file)) {
         debugManagement('File not found: ' + uuid);
