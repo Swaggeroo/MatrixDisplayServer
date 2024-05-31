@@ -9,5 +9,8 @@
 `MONGO_PASS`
 `MONGO_URL`
 
+## Server
+`MatrixURL`
+
 # Mounts
 `/app/images`
