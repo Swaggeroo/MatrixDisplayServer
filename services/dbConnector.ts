@@ -26,7 +26,7 @@ function connect(){
     const url = process.env.MONGO_URL;
 
     if (!url) {
-        debugDB('FATAL ERROR: mongoUrl is not defined.');
+        debugDB('FATAL ERROR: MONGO_URL is not defined.');
         process.exit(1);
     }
 

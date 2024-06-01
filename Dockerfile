@@ -9,6 +9,7 @@ COPY routes ./routes
 COPY config ./config
 COPY models ./models
 COPY services ./services
+COPY utils ./utils
 
 RUN npm install
 
