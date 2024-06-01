@@ -53,6 +53,15 @@ app.use('/api', integrity);
 
 app.use('/pictures', express.static('images'));
 
+app.use((err: any, req: any, res: any, next: any) => {
+    if (err.code === 'ERR_SSL_PROTOCOL_ERROR') {
+        console.error(err);
+        res.status(500).send('SSL/TLS protocol error');
+    } else {
+        next(err);
+    }
+});
+
 //read config
 debugStartup(config.get('name'));
 
