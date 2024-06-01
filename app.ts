@@ -8,7 +8,7 @@ import fileUpload from "express-fileupload";
 import fs from "fs";
 import config from "config";
 import cors from "cors";
-
+import https from "https";
 //services
 import {connect as connectDB} from "./services/dbConnector";
 
@@ -20,7 +20,7 @@ import {router as integrity} from './routes/integrity';
 
 const app = express();
 
-if (process.env.TRUST_PROXY) app.set('trust proxy', true);
+if (process.env.TRUST_PROXY?.toLowerCase() === 'true') app.set('trust proxy', true);
 
 //default middleware
 app.use(fileUpload())
@@ -73,4 +73,7 @@ if(app.get('env') === 'development'){
 
 //start application
 const port = process.env.PORT || 3000;
-app.listen(port, () => debugStartup(`Listening on port ${port}...`));
+https.createServer(app).listen(port, () => {
+    debugStartup(`Listening on port ${port}...`);
+});
+//app.listen(port, () => debugStartup(`Listening on port ${port}...`));
