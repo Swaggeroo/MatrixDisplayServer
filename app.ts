@@ -24,7 +24,9 @@ app.use(fileUpload())
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(helmet({crossOriginResourcePolicy: false,}));
-app.use(cors());
+app.use(cors({
+    "origin": false,
+}));
 
 //create uploads folder
 const UPLOAD_DIR = './'+config.get('uploadDir');
