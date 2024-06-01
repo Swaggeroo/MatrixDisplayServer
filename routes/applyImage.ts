@@ -109,7 +109,7 @@ async function sendPictureToMatrix(body: string, res: any){
         });
     }catch (err){
         debugApplyImage('Error sending data to matrix: ' + err);
-        res.write('1 of 1');
+        res.write('Error sending data to matrix.');
         res.status(500);
         res.end();
         return;
@@ -133,7 +133,7 @@ async function sendAnimationToMatrix(body: string[], res: any){
         }
     }catch (err){
         debugApplyImage('Error sending data to matrix: ' + err);
-        res.write(body.length+' of '+body.length);
+        res.write('Error sending data to matrix.');
         res.status(500);
         res.end();
         return;
