@@ -20,7 +20,7 @@ import {router as integrity} from './routes/integrity';
 
 const app = express();
 
-if (process.env.TRUST_PROXY) app.set('trust proxy', process.env.TRUST_PROXY);
+if (process.env.TRUST_PROXY) app.set('trust proxy', true);
 
 //default middleware
 app.use(fileUpload())
