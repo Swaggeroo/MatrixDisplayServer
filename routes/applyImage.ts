@@ -60,16 +60,10 @@ router.post('/apply/:uuid', async (req, res) => {
 
     await sendBrightnessToMatrix(brightness);
 
-    try{
-        if (picture.animated){
-            await sendAnimationToMatrix(picture.data, speed, res);
-        }else{
-            await sendPictureToMatrix(picture.data[0], res);
-        }
-    } catch (err){
-        debugApplyImage('Error sending data to matrix: ' + err);
-        applyingImage = false;
-        return res.status(500).send('Error sending data to matrix.');
+    if (picture.animated){
+        await sendAnimationToMatrix(picture.data, speed, res);
+    }else{
+        await sendPictureToMatrix(picture.data[0], res);
     }
 
     applyingImage = false;
@@ -80,26 +74,44 @@ async function sendPictureToMatrix(body: string, res: any){
     res.write('0 of 1\n');
     res.write('0 of 1\n');
 
-    await fetch(MATRIX_URL + '/setPicture', {
-        method: 'POST',
-        body: body,
-        headers: {'Content-Type': 'application/json'}
-    });
+    try {
+        await fetch(MATRIX_URL + '/setPicture', {
+            method: 'POST',
+            body: body,
+            headers: {'Content-Type': 'application/json'}
+        });
+    }catch (err){
+        debugApplyImage('Error sending data to matrix: ' + err);
+        res.write('1 of 1');
+        res.status(500);
+        res.end();
+        return;
+    }
+
 
     res.write('1 of 1');
     res.end();
 }
 
 async function sendAnimationToMatrix(body: string[], speed: number, res: any){
-    for (let i = 0; i < body.length; i++){
-        body[i] = body[i].replace('-1', speed.toString());
-        res.write(i + ' of ' + body.length + '\n');
-        await fetch(MATRIX_URL + '/setAnimationFragment', {
-            method: 'POST',
-            body: body[i],
-            headers: {'Content-Type': 'application/json'}
-        });
+    try {
+        for (let i = 0; i < body.length; i++){
+            body[i] = body[i].replace('-1', speed.toString());
+            res.write(i + ' of ' + body.length + '\n');
+            await fetch(MATRIX_URL + '/setAnimationFragment', {
+                method: 'POST',
+                body: body[i],
+                headers: {'Content-Type': 'application/json'}
+            });
+        }
+    }catch (err){
+        debugApplyImage('Error sending data to matrix: ' + err);
+        res.write(body.length+' of '+body.length);
+        res.status(500);
+        res.end();
+        return;
     }
+
     res.write(body.length+' of '+body.length);
     res.end();
 }
