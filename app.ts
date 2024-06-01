@@ -8,7 +8,6 @@ import fileUpload from "express-fileupload";
 import fs from "fs";
 import config from "config";
 import cors from "cors";
-import https from "https";
 //services
 import {connect as connectDB} from "./services/dbConnector";
 
@@ -73,7 +72,4 @@ if(app.get('env') === 'development'){
 
 //start application
 const port = process.env.PORT || 3000;
-https.createServer(app).listen(port, () => {
-    debugStartup(`Listening on port ${port}...`);
-});
-//app.listen(port, () => debugStartup(`Listening on port ${port}...`));
+app.listen(port, () => debugStartup(`Listening on port ${port}...`));
