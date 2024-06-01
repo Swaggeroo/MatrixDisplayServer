@@ -10,7 +10,8 @@
 `MONGO_URL`
 
 ## Server
-`MatrixURL`
+`MATRIX_URL`
+`BASE_URL`
 
 # Mounts
 `/app/images`

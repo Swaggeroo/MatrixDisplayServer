@@ -10,7 +10,7 @@ const router = express.Router();
 const debugManagement = require('debug')('app:management');
 
 const IMAGE_DIR: string = config.get('imageDir');
-const BASE_URL: string = config.get('baseUrl');
+const BASE_URL: string = process.env.BASE_URL ?? config.get('baseUrl');
 
 router.get('/', (req, res) => {
     //get all uuids
