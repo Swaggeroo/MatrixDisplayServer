@@ -20,6 +20,8 @@ import {router as integrity} from './routes/integrity';
 
 const app = express();
 
+if (process.env.TRUST_PROXY) app.set('trust proxy', process.env.TRUST_PROXY);
+
 //default middleware
 app.use(fileUpload())
 app.use(express.json());
@@ -52,15 +54,6 @@ app.use('/api', applyImage);
 app.use('/api', integrity);
 
 app.use('/pictures', express.static('images'));
-
-app.use((err: any, req: any, res: any, next: any) => {
-    if (err.code === 'ERR_SSL_PROTOCOL_ERROR') {
-        console.error(err);
-        res.status(500).send('SSL/TLS protocol error');
-    } else {
-        next(err);
-    }
-});
 
 //read config
 debugStartup(config.get('name'));
