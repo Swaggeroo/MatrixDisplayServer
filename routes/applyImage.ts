@@ -48,7 +48,7 @@ router.post('/apply/:uuid', async (req, res) => {
  });
 
 router.post('/setBrightness', async (req, res) => {
-    let brightness: number = Number(req.query.brightness);
+    let brightness: number = Number(req.body.brightness);
 
     if (isNaN(brightness)) {
         return res.status(400).send('Brightness is not a number.');
@@ -70,10 +70,11 @@ router.post('/setBrightness', async (req, res) => {
     currentBrightness = brightness;
 
     res.send('Brightness set to ' + brightness);
+    debugApplyImage('Brightness set to ' + brightness);
 });
 
 router.post('/setSpeed', async (req, res) => {
-    let speed: number = Number(req.query.speed);
+    let speed: number = Number(req.body.speed);
 
     if (isNaN(speed)) {
         return res.status(400).send('Speed is not a number.');
@@ -95,6 +96,27 @@ router.post('/setSpeed', async (req, res) => {
     currentSpeed = speed;
 
     res.send('Speed set to ' + speed);
+    debugApplyImage('Speed set to ' + speed);
+});
+
+router.get('/status', (req, res) => {
+    res.send({
+        applyingImage: applyingImage,
+        brightness: currentBrightness,
+        speed: currentSpeed
+    });
+});
+
+router.post('/off', async (req, res) => {
+    try {
+        await fetch(MATRIX_URL + '/off', {method: 'POST'});
+    }catch (err){
+        debugApplyImage('Error turning off matrix: ' + err);
+        return res.status(500).send('Error turning off matrix.');
+    }
+
+    res.send('Matrix turned off.');
+    debugApplyImage('Matrix turned off.');
 });
 
 async function sendPictureToMatrix(body: string, res: any){
