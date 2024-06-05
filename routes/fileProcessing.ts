@@ -157,10 +157,27 @@ async function gifProcessing(file: string, uuid: string, name: string): Promise<
         .gif()
         .toFile(DEST_DIR + uuid + ".gif");
 
-    const results = await extractFrames({
+    let results = await extractFrames({
         input: DEST_DIR + uuid + ".gif",
         output: TMP_DIR + uuid + "_%d.png"
     })
+
+    let hasTransparency = false;
+    let firstFrame = getPixels(TMP_DIR + uuid + "_0.png");
+    for (let i = 0; i < firstFrame.length; i++) {
+        if (firstFrame[i].alpha < 255) {
+            hasTransparency = true;
+            break;
+        }
+    }
+
+    if (hasTransparency) {
+        results = await extractFrames({
+            input: DEST_DIR + uuid + ".gif",
+            output: TMP_DIR + uuid + "_%d.png",
+            coalesce: false
+        })
+    }
 
     let pixels: Pixel[][] = [];
 
@@ -190,7 +207,7 @@ function pixelsToPicture(pixels: Pixel[]): string {
     let jsonObject = JSON.parse(jsonString);
 
     for (let i = 0; i < pixels.length; i++) {
-        if (pixels[i].alpha === 0) {
+        if (pixels[i].alpha < 255) {
             jsonObject.picture.push([0, 0, 0]);
         }else {
             jsonObject.picture.push([pixels[i].red, pixels[i].green, pixels[i].blue]);
@@ -225,7 +242,7 @@ function getAnimationFrame(pixels: Pixel[]): number[][] {
     let frame: number[][] = [];
 
     for (let i = 0; i < pixels.length; i++) {
-        if (pixels[i].alpha === 0) {
+        if (pixels[i].alpha < 255) {
             frame.push([pixels[i].id, 0, 0, 0]);
         }else {
             frame.push([pixels[i].id, pixels[i].red, pixels[i].green, pixels[i].blue]);
@@ -239,7 +256,7 @@ function pixelsToFrameDiff(pixelsPre: Pixel[], pixels: Pixel[]): number[][] {
     let diffPixels: Pixel[] = [];
 
     for (let i = 0; i < pixels.length; i++) {
-        if (pixels[i].red !== pixelsPre[i].red || pixels[i].green !== pixelsPre[i].green || pixels[i].blue !== pixelsPre[i].blue) {
+        if (pixels[i].red !== pixelsPre[i].red || pixels[i].green !== pixelsPre[i].green || pixels[i].blue !== pixelsPre[i].blue || pixels[i].alpha !== pixelsPre[i].alpha) {
             diffPixels.push(pixels[i]);
         }
     }
