@@ -6,7 +6,7 @@
     "start": "ts-node app.ts"
   },
   "dependencies": {
-    "@types/node": "^20.12.8",
+    "@types/node": "^22.0.0",
     "config": "^3.3.11",
     "cors": "^2.8.5",
     "debug": "^4.3.4",
