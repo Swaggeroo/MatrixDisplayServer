@@ -8,5 +8,5 @@
       "matchUpdateTypes": ["patch","minor"],
       "automerge": true
     }
-  ],
+  ]
 }
