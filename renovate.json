@@ -6,7 +6,8 @@
   "packageRules": [
     {
       "matchUpdateTypes": ["patch","minor"],
-      "automerge": true
+      "automerge": true,
+      "platformAutomerge": true
     }
   ]
 }
