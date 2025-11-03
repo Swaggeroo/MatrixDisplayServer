@@ -134,7 +134,7 @@ async function imageProcessing(file: string, uuid: string, name: string): Promis
             uuid: uuid,
             name: name,
             animated: false,
-            data: [pixelsToPicture(getPixels(DEST_DIR + uuid + ".png"))]
+            data: [pixelsToPicture(await getPixels(DEST_DIR + uuid + ".png"))]
         });
 
         await picture.save();
@@ -197,7 +197,7 @@ async function gifProcessing(file: string, uuid: string, name: string): Promise<
     let pixels: Pixel[][] = [];
 
     for (let i = 1; i <= frameCount; i++) {
-        pixels[i-1] = getPixels(path.join(TMP_DIR, `${uuid}_${i}.png`));
+        pixels[i-1] = await getPixels(path.join(TMP_DIR, `${uuid}_${i}.png`));
         fs.unlinkSync(path.join(TMP_DIR, `${uuid}_${i}.png`));
     }
 

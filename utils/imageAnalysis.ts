@@ -1,24 +1,26 @@
-import {PNG} from "pngjs";
 import fs from "fs";
+import sharp from "sharp";
 
-function getPixels(filePath: string): Pixel[] {
+async function getPixels(filePath: string): Promise<Pixel[]> {
     // Read the image file into a Buffer
     const imageData = fs.readFileSync(filePath);
 
-    // Parse the image buffer
-    const png = PNG.sync.read(imageData);
+    const { data, info } = await sharp(imageData)
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
 
     // Get the pixels
     const pixels: Pixel[] = [];
-    for (let y = 0; y < png.height; y++) {
-        for (let x = 0; x < png.width; x++) {
-            const idx = (png.width * y + x) << 2;
+    for (let y = 0; y < info.height; y++) {
+        for (let x = 0; x < info.width; x++) {
+            const idx = (info.width * y + x) << 2;
             const pixel: Pixel = {
-                red: png.data[idx],
-                green: png.data[idx + 1],
-                blue: png.data[idx + 2],
-                alpha: png.data[idx + 3],
-                id: y * png.width + x
+                red: data[idx],
+                green: data[idx + 1],
+                blue: data[idx + 2],
+                alpha: data[idx + 3],
+                id: y * info.width + x
             };
             pixels.push(pixel);
         }
