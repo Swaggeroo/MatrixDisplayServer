@@ -16,7 +16,6 @@ services:
       MONGO_URL: "mongodb://devuser:devpass@mongo:27017/matrix?authSource=admin"
       MATRIX_URL: "http://matrix.local"
       BASE_URL: "http://localhost:3000"
-      NAME: "TEST SERVER"
     depends_on:
       - mongo
     volumes:

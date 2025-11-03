@@ -13,7 +13,6 @@
     "debug": "^4.4.3",
     "express": "^5.1.0",
     "express-fileupload": "^1.5.2",
-    "gif-extract-frames": "^1.0.2",
     "helmet": "^8.1.0",
     "lodash": "^4.17.21",
     "mongoose": "^8.19.2",

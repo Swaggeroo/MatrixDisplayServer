@@ -6,9 +6,8 @@ import config from "config";
 import {isConnected} from "../services/dbConnector";
 import {Picture} from "../models/picture";
 import {getPixels, Pixel} from "../utils/imageAnalysis";
-
-const extractFrames = require('gif-extract-frames');
-
+import path from "path";
+import {spawn} from "node:child_process";
 const router = express.Router();
 const debugUpload = require('debug')('app:upload');
 
@@ -149,57 +148,73 @@ async function imageProcessing(file: string, uuid: string, name: string): Promis
     }
 }
 
-async function gifProcessing(file: string, uuid: string, name: string): Promise<void> {
-    debugUpload('GIF processing started: ' + uuid + ' - ' + name);
+async function runFfmpegExtractFrames(
+    inputGif: string,
+    outputPattern: string
+): Promise<number> {
+    // Build ffmpeg args to extract all frames as PNGs
+    // Use -vsync 0 to avoid duplications in some gifs. :contentReference[oaicite:1]{index=1}
+    const args = [
+        "-i", inputGif,
+        "-fps_mode", "passthrough",
+        outputPattern
+    ];
 
-    await sharp(UPLOAD_DIR + file, { animated: true })
+    await new Promise<void>((resolve, reject) => {
+        const proc = spawn("ffmpeg", args, { stdio: "inherit" });
+        proc.on("error", reject);
+        proc.on("exit", (code) => {
+            if (code === 0) resolve();
+            else reject(new Error(`ffmpeg exited with code ${code}`));
+        });
+    });
+
+    // Now count how many files got written
+    const files = fs.readdirSync(path.dirname(outputPattern));
+    const regex = new RegExp(
+        path.basename(outputPattern)
+            .replace("%d", "(\\d+)")
+            .replace(".", "\\.")
+    );
+    const frameFiles = files.filter(f => regex.test(f));
+    return frameFiles.length;
+}
+
+async function gifProcessing(file: string, uuid: string, name: string): Promise<void> {
+    debugUpload(`GIF processing started: ${uuid} - ${name}`);
+
+    const inputPath  = path.join(UPLOAD_DIR, file);
+    const gifPath    = path.join(DEST_DIR, `${uuid}.gif`);
+
+    await sharp(inputPath, { animated: true })
         .resize(WIDTH, HEIGHT)
         .gif()
-        .toFile(DEST_DIR + uuid + ".gif");
+        .toFile(gifPath);
 
-    let results = await extractFrames({
-        input: DEST_DIR + uuid + ".gif",
-        output: TMP_DIR + uuid + "_%d.png"
-    })
-
-    let hasTransparency = false;
-    let firstFrame = getPixels(TMP_DIR + uuid + "_0.png");
-    for (let i = 0; i < firstFrame.length; i++) {
-        if (firstFrame[i].alpha < 255) {
-            hasTransparency = true;
-            break;
-        }
-    }
-
-    if (hasTransparency) {
-        results = await extractFrames({
-            input: DEST_DIR + uuid + ".gif",
-            output: TMP_DIR + uuid + "_%d.png",
-            coalesce: false
-        })
-    }
+    const tmpPattern = path.join(TMP_DIR, `${uuid}_%d.png`);
+    let frameCount = await runFfmpegExtractFrames(gifPath, tmpPattern);
 
     let pixels: Pixel[][] = [];
 
-    for (let i = 0; i < results.shape[0]; i++) {
-        pixels[i] = getPixels(TMP_DIR + uuid + "_" + i + ".png");
-        fs.unlinkSync(TMP_DIR + uuid + "_" + (i) + ".png");
+    for (let i = 1; i <= frameCount; i++) {
+        pixels[i-1] = getPixels(path.join(TMP_DIR, `${uuid}_${i}.png`));
+        fs.unlinkSync(path.join(TMP_DIR, `${uuid}_${i}.png`));
     }
 
     const picture = new Picture({
         uuid: uuid,
         name: name,
         animated: true,
-        frameCount: results.shape[0],
-        data: pixelsToAnimation(pixels, results.shape[0]),
+        frameCount: frameCount,
+        data: pixelsToAnimation(pixels, frameCount),
     });
 
     await picture.save();
 
     //delete original file
-    fs.unlinkSync(UPLOAD_DIR + file);
+    fs.unlinkSync(inputPath);
 
-    debugUpload('GIF processing finished: ' + uuid + ' - ' + name);
+    debugUpload(`GIF processing finished: ${uuid} - ${name}`);
 }
 
 function pixelsToPicture(pixels: Pixel[]): string {
