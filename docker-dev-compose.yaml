@@ -1,0 +1,52 @@
+services:
+  app:
+    # Build image from the repository Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: matrix-display-server:dev
+    ports:
+      - "3000:3000"
+    environment:
+      # Readme-specified defaults for dev. These can be overridden by an .env file or environment.
+      DEBUG: "app:*"
+      MONGO_USER: "devuser"
+      MONGO_PASS: "devpass"
+      # The app expects a connection URL; point it to the mongo service below
+      MONGO_URL: "mongodb://devuser:devpass@mongo:27017/matrix?authSource=admin"
+      MATRIX_URL: "http://matrix.local"
+      BASE_URL: "http://localhost:3000"
+      NAME: "TEST SERVER"
+    depends_on:
+      - mongo
+    volumes:
+      # Mount project images directory into the container (per README)
+      - ./images:/app/images:rw
+      # Keep uploads and tmp on host for easy inspection during dev
+      - ./uploads:/app/uploads:rw
+      - ./tmp:/app/tmp:rw
+      # Optionally mount the source for fast iteration (uncomment if you want live edits to affect container)
+      # - ./:/app:cached
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "devuser"
+      MONGO_INITDB_ROOT_PASSWORD: "devpass"
+      MONGO_INITDB_DATABASE: "matrix"
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      # Expose mongo on host for easy debugging (change/remove in CI)
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo-data:
+    name: matrix_mongo_data
