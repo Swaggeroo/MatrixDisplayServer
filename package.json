@@ -7,7 +7,7 @@
     "start": "node dist/app.js"
   },
   "dependencies": {
-    "@types/node": "^22.15.3",
+    "@types/node": "^24.0.0",
     "config": "^3.3.12",
     "cors": "^2.8.5",
     "debug": "^4.4.0",
