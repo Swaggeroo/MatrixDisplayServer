@@ -1,4 +1,4 @@
-FROM node:24.13.1
+FROM node:24.14.0
 LABEL authors="swaggeroo"
 
 EXPOSE 3000
