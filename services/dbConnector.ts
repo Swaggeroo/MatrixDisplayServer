@@ -54,7 +54,8 @@ async function connect(){
     debugDB("Trying to connect to MongoDB with "+ user + " at " + url);
     mongoose.connect(url, {
         authSource: "admin",
-        auth: user && password ? { user, password } : undefined
+        user: user,
+        pass: password
     })
         .then(() => {
             debugDB('Connected to MongoDB('+url+')...');
