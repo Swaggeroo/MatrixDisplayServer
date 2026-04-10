@@ -6,7 +6,7 @@ EXPOSE 3000
 RUN apt update && apt install -y ffmpeg
 
 WORKDIR /app
-COPY ["package.json", "package-lock.json", "tsconfig.json", "app.ts", "./"]
+COPY ["package.json", "package-lock.json", "tsconfig.json", "app.ts", "openapi.yaml", "./"]
 COPY routes ./routes
 COPY config ./config
 COPY models ./models
