@@ -3,12 +3,18 @@ info:
   title: Matrix Display Server API
   description: API for managing and applying images to a matrix display.
   version: 0.5.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
 servers:
   - url: http://localhost:3000
     description: Development server
+security:
+  - {} # No security by default
 paths:
   /api/upload:
     post:
+      operationId: uploadImage
       summary: Upload an image
       description: Uploads a PNG or GIF image to the server for processing and storage.
       requestBody:
@@ -48,20 +54,21 @@ paths:
                       type: string
                       format: uuid
         '400':
-          description: Invalid request (e.g., missing files, invalid title, unsupported file type).
+          description: Invalid request.
           content:
             text/plain:
               schema:
                 type: string
         '500':
-          description: Server error (e.g., database connection issue).
+          description: Server error.
           content:
             text/plain:
               schema:
                 type: string
 
-  /api/:
+  /api:
     get:
+      operationId: listImages
       summary: List all image UUIDs
       description: Returns a list of all processed image UUIDs.
       responses:
@@ -74,9 +81,12 @@ paths:
                 items:
                   type: string
                   format: uuid
+        '400':
+          description: Bad Request.
 
   /api/picture/{uuid}:
     get:
+      operationId: getPictureDetails
       summary: Get picture details
       description: Returns the URL and name of the image with the given UUID.
       parameters:
@@ -105,6 +115,7 @@ paths:
           description: Server error.
 
     delete:
+      operationId: deletePicture
       summary: Delete a picture
       description: Deletes the image and its database entry for the given UUID.
       parameters:
@@ -124,6 +135,7 @@ paths:
 
   /api/random:
     get:
+      operationId: getRandomPicture
       summary: Get a random picture UUID
       description: Returns a random UUID from the list of processed images.
       responses:
@@ -134,11 +146,14 @@ paths:
               schema:
                 type: string
                 format: uuid
+        '404':
+          description: No images found.
 
   /api/apply/{uuid}:
     post:
+      operationId: applyImage
       summary: Apply image to matrix
-      description: Sends the image data to the matrix display. This is a streaming response.
+      description: Sends the image data to the matrix display.
       parameters:
         - name: uuid
           in: path
@@ -162,6 +177,7 @@ paths:
 
   /api/setBrightness:
     post:
+      operationId: setBrightness
       summary: Set matrix brightness
       description: Updates the brightness of the matrix display.
       requestBody:
@@ -187,6 +203,7 @@ paths:
 
   /api/setSpeed:
     post:
+      operationId: setSpeed
       summary: Set animation speed
       description: Updates the animation speed (frame delay) of the matrix display.
       requestBody:
@@ -212,8 +229,9 @@ paths:
 
   /api/status:
     get:
+      operationId: getStatus
       summary: Get server and matrix status
-      description: Returns whether an image is being applied, the current brightness, and speed.
+      description: Returns status of the application.
       responses:
         '200':
           description: Current status.
@@ -228,21 +246,27 @@ paths:
                     type: integer
                   speed:
                     type: integer
+        '400':
+          description: Bad Request.
 
   /api/off:
     post:
+      operationId: turnOffMatrix
       summary: Turn off matrix
       description: Sends a command to turn off the matrix display.
       responses:
         '200':
           description: Matrix turned off.
+        '400':
+          description: Bad Request.
         '500':
           description: Error communicating with the matrix.
 
   /api/checkIntegrity:
     get:
+      operationId: checkIntegrity
       summary: Check system integrity
-      description: Synchronizes the database and the image files, cleaning up any inconsistencies.
+      description: Synchronizes the database and the image files.
       responses:
         '200':
           description: Integrity check completed.
@@ -254,13 +278,16 @@ paths:
                   status:
                     type: string
                     example: Cleaned
+        '400':
+          description: Bad Request.
         '500':
           description: Database connection issue.
 
   /pictures/{filename}:
     get:
+      operationId: getStaticPicture
       summary: Serve static picture files
-      description: Serves processed PNG or GIF files from the images directory.
+      description: Serves processed PNG or GIF files.
       parameters:
         - name: filename
           in: path
@@ -279,3 +306,5 @@ paths:
               schema:
                 type: string
                 format: binary
+        '404':
+          description: File not found.
