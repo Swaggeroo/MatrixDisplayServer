@@ -9,6 +9,8 @@ info:
 servers:
   - url: http://localhost:3000
     description: Development server
+  - url: https://matrix-display-server.lumo.local.swaggeroo.de
+    description: Production server
 security:
   - {} # No security by default
 paths:
