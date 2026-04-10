@@ -1,0 +1,281 @@
+openapi: 3.0.3
+info:
+  title: Matrix Display Server API
+  description: API for managing and applying images to a matrix display.
+  version: 0.5.0
+servers:
+  - url: http://localhost:3000
+    description: Development server
+paths:
+  /api/upload:
+    post:
+      summary: Upload an image
+      description: Uploads a PNG or GIF image to the server for processing and storage.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                pictures:
+                  type: string
+                  format: binary
+                  description: The image file to upload (PNG or GIF).
+                title:
+                  type: string
+                  minLength: 3
+                  maxLength: 30
+                  pattern: '^[a-zA-Z0-9 ]+$'
+                  description: The title of the image (alphanumeric and spaces).
+              required:
+                - pictures
+                - title
+      responses:
+        '200':
+          description: File(s) uploaded successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: File(s) uploaded!
+                  uuids:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+        '400':
+          description: Invalid request (e.g., missing files, invalid title, unsupported file type).
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Server error (e.g., database connection issue).
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/:
+    get:
+      summary: List all image UUIDs
+      description: Returns a list of all processed image UUIDs.
+      responses:
+        '200':
+          description: A list of UUIDs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+
+  /api/picture/{uuid}:
+    get:
+      summary: Get picture details
+      description: Returns the URL and name of the image with the given UUID.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Picture details found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                  name:
+                    type: string
+        '404':
+          description: Picture not found.
+        '500':
+          description: Server error.
+
+    delete:
+      summary: Delete a picture
+      description: Deletes the image and its database entry for the given UUID.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Image deleted successfully.
+        '404':
+          description: Picture not found.
+        '500':
+          description: Server error or file not found.
+
+  /api/random:
+    get:
+      summary: Get a random picture UUID
+      description: Returns a random UUID from the list of processed images.
+      responses:
+        '200':
+          description: A random UUID.
+          content:
+            text/plain:
+              schema:
+                type: string
+                format: uuid
+
+  /api/apply/{uuid}:
+    post:
+      summary: Apply image to matrix
+      description: Sends the image data to the matrix display. This is a streaming response.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Streaming status of the application process.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Another image is currently being applied.
+        '404':
+          description: Image not found.
+        '500':
+          description: Server error.
+
+  /api/setBrightness:
+    post:
+      summary: Set matrix brightness
+      description: Updates the brightness of the matrix display.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                brightness:
+                  type: integer
+                  minimum: 1
+                  maximum: 255
+              required:
+                - brightness
+      responses:
+        '200':
+          description: Brightness set successfully.
+        '400':
+          description: Invalid brightness value.
+        '500':
+          description: Error communicating with the matrix.
+
+  /api/setSpeed:
+    post:
+      summary: Set animation speed
+      description: Updates the animation speed (frame delay) of the matrix display.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                speed:
+                  type: integer
+                  minimum: 0
+                  maximum: 60000
+              required:
+                - speed
+      responses:
+        '200':
+          description: Speed set successfully.
+        '400':
+          description: Invalid speed value.
+        '500':
+          description: Error communicating with the matrix.
+
+  /api/status:
+    get:
+      summary: Get server and matrix status
+      description: Returns whether an image is being applied, the current brightness, and speed.
+      responses:
+        '200':
+          description: Current status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  applyingImage:
+                    type: boolean
+                  brightness:
+                    type: integer
+                  speed:
+                    type: integer
+
+  /api/off:
+    post:
+      summary: Turn off matrix
+      description: Sends a command to turn off the matrix display.
+      responses:
+        '200':
+          description: Matrix turned off.
+        '500':
+          description: Error communicating with the matrix.
+
+  /api/checkIntegrity:
+    get:
+      summary: Check system integrity
+      description: Synchronizes the database and the image files, cleaning up any inconsistencies.
+      responses:
+        '200':
+          description: Integrity check completed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: Cleaned
+        '500':
+          description: Database connection issue.
+
+  /pictures/{filename}:
+    get:
+      summary: Serve static picture files
+      description: Serves processed PNG or GIF files from the images directory.
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The image file.
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/gif:
+              schema:
+                type: string
+                format: binary

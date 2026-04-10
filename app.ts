@@ -8,6 +8,9 @@ import fileUpload from "express-fileupload";
 import fs from "fs";
 import config from "config";
 import cors from "cors";
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
+
 //services
 import {connect as connectDB} from "./services/dbConnector";
 
@@ -18,6 +21,10 @@ import {router as applyImage} from './routes/applyImage';
 import {router as integrity} from './routes/integrity';
 
 const app = express();
+
+// Swagger Documentation
+const swaggerDocument = YAML.load('./openapi.yaml');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 //default middleware
 app.use(fileUpload())
