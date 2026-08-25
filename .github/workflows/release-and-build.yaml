@@ -26,9 +26,6 @@ jobs:
       image_namespace: ${{ github.repository_owner }}
       image_name: ${{ github.event.repository.name }}
       publish_release: ${{ github.event_name != 'workflow_dispatch' }}
-      dockerhub_enabled: true
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
       registry_password: ${{ secrets.GITHUB_TOKEN }}
-      dockerhub_username: ${{ secrets.DOCKER_USERNAME }}
-      dockerhub_password: ${{ secrets.DOCKER_PASSWORD }}
