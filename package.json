@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@types/node": "^25.5.2",
-    "config": "^4.4.1",
+    "config": "^5.0.0",
     "cors": "^2.8.6",
     "debug": "^4.4.3",
     "express": "^5.2.1",
