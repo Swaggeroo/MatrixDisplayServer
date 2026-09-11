@@ -1,6 +1,6 @@
 {
   "name": "matrixdisplayserver",
-  "version": "0.7.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "build": "tsc",
@@ -21,7 +21,7 @@
     "sharp": "^0.35.4",
     "swagger-ui-express": "^5.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "uuid": "^14.0.2",
     "yaml": "^2.9.0"
   },
