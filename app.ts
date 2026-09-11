@@ -9,7 +9,7 @@ import fs from "fs";
 import config from "config";
 import cors from "cors";
 import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
+import YAML from 'yaml';
 
 //services
 import {connect as connectDB} from "./services/dbConnector";
@@ -23,7 +23,7 @@ import {router as integrity} from './routes/integrity';
 const app = express();
 
 // Swagger Documentation
-const swaggerDocument = YAML.load('./openapi.yaml');
+const swaggerDocument = YAML.parse(fs.readFileSync('./openapi.yaml', 'utf8'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 //default middleware
